@@ -1,0 +1,79 @@
+#root {
+  width: 100%;
+}
+
+#root {
+  height: 200vh;
+  width: 100%;
+  text-align: center;
+  color: white;
+  background: rgb(63,94,251);
+  background: radial-gradient(circle, rgba(63,94,251,1) 0%, rgba(252,70,107,1) 100%);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+}
+
+table {
+  width: 100%;
+}
+
+#sql-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  background-color: rgba(17, 25, 40, 0.75) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.125) !important;
+
+  height: 90vh;
+  width: 85vw;
+}
+
+
+#sql-form {
+  width: 30%;
+  height: 90vh;
+}
+
+#sql-table {
+  width: 60%;
+  height: 90vh;
+}
+
+#no-sql-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    height: 90vh;
+    width: 85vw;
+
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    background-color: rgba(17, 25, 40, 0.75) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.125) !important;
+
+}
+
+#reviews {
+    width: 60%;
+    text-align: center;
+}
+
+#no-sql-form {
+    width: 30%;
+}
+
+.review-section {
+    width: 100%;
+    padding: 10px 0;
+    color: black;
+    background-color: beige !important;
+}
