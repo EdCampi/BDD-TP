@@ -4,6 +4,7 @@ Repositorio dedicado al trabajo practico de la materia Base de datos, 75.15 de l
 ## Notas
 Para correr el backend es necesario antes:
 * Tener instalado Node.js.
+* Correr `npm install` en la carpeta backend para instalar las dependencias necesarias.
 * Tener instalado MySQL con su shell.
 * Tener instalado MongoDB localmente junto con mongosh e inciarlo.
 * Asegurarse de iniciar ambas bases de datos localmente antes de de correr el server, ejecutar `node server.js` en la carpeta backend.
@@ -18,6 +19,7 @@ CORS_ORIGIN=http://localhost:3000
 ```
 
 Para correr el frontend es necesario:
+* Correr `npm install` en la carpeta frontend para instalar las dependencias necesarias.
 * Correr `npm start run` dentro de la carpeta frontend para inciar la app React.
 * Configurar el archivo `.env` de la carpeta frontend.
 ```
