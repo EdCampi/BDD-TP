@@ -6,10 +6,10 @@ const sw = require('sweetalert2');
 function NoSQLTable() {
 
     const {restaurants, setRestaurants} = useContext(SharedStateContext);
-    const {ping, setPing} = useContext(SharedStateContext);
+    const {setListWithRatings} = useContext(SharedStateContext);
     const [reviews, setReviews] = useState([]);
     const [reviewToModify, setReviewToModify] = useState(null);
-
+    const {ping} = useContext(SharedStateContext);
 
     const updateReviews = async () => {
         try {
@@ -27,8 +27,7 @@ function NoSQLTable() {
                     },
                 })
                 const avgJSON = await res.json();
-                console.log('retings horse mouth', avgJSON.data);
-                setPing(avgJSON.data);
+                setListWithRatings(avgJSON.data);
             } catch (e) {
                 console.log(e);
             }
@@ -36,6 +35,10 @@ function NoSQLTable() {
             console.log(e);
         }
     };
+
+    useEffect(() => {
+        updateReviews();
+    }, [ping]);
 
     const updateRestaurants = async () => {
         try {

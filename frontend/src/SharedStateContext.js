@@ -1,17 +1,28 @@
 import React, {createContext, useState} from 'react';
 
-// Crear el contexto
 export const SharedStateContext = createContext();
 
-// Proveedor del contexto
 export const SharedStateProvider = ({children}) => {
     const [restaurants, setRestaurants] = useState([]);
     const [restaurantsList, setRestaurantsList] = useState([]);
-    const [ping, setPing] = useState({});
+    const [listWithRatings, setListWithRatings] = useState({});
+
+    // Uso un sistema de "alertas" para forzar a los componentes a renderizar
+    // -> Solo lo uso para actualizar reviews al eliminar un restaurante.
+    const [ping, setPing] = useState(0);
 
     return (
         <SharedStateContext.Provider
-            value={{restaurants, setRestaurants, restaurantsList, setRestaurantsList, ping, setPing}}>
+            value={{
+                restaurants,
+                setRestaurants,
+                restaurantsList,
+                setRestaurantsList,
+                listWithRatings,
+                setListWithRatings,
+                ping,
+                setPing
+            }}>
             {children}
         </SharedStateContext.Provider>
     );

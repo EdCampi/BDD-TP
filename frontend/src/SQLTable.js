@@ -15,37 +15,22 @@ function SQLTable() {
     const [editor, setEditor] = useState(false);
     const [rowToModify, setRowToModify] = useState(null);
 
-    // Lista de dicts para rellenar tabla.
+    // Lista de dicts para rellenar tds.
     const {restaurantsList, setRestaurantsList} = useContext(SharedStateContext);
-    //Lista de dicts filtrada x unicos en name.
+
+    //Lista de dicts filtrada por unicos en nombre (para la lista del componente NoSQL).
     const {setRestaurants} = useContext(SharedStateContext);
-    const [avgRatings, setAvgRatings] = useState({});
-    const {ping, setPing} = useContext(SharedStateContext);
 
-
-    const updateRatings = async () => {
-        try {
-            const res = await fetch(process.env.REACT_APP_MONGO_DB_API + '/ratings', {
-                method: 'GET', headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-            const resJSON = await res.json();
-            setAvgRatings(resJSON.data);
-            console.log('udrt', avgRatings);
-        } catch (e) {
-            console.log(e);
-        }
-    };
+    const {listWithRatings} = useContext(SharedStateContext);
+    const {setPing} = useContext(SharedStateContext);
 
     const updateRestaurants = async (jsonData, updateDropdownList) => {
         const updatedData = jsonData.data.map(item => ({...item, rating: 0}));
         let aux = [...updatedData];
         aux.map((item) => {
             if (restaurantInAvgList(item.name)) {
-                item.rating = ping[item.name];
+                item.rating = listWithRatings[item.name];
             } else {
-                console.log("no mathc", item.name);
                 item.rating = 0;
             }
             return item;
@@ -73,19 +58,29 @@ function SQLTable() {
 
     }
 
-    const deleteRow = async (id) => {
+    const deleteRow = async (id, name) => {
         try {
             await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-            }).then(res => res.json())
+            }).then(res => res.json());
         } catch (err) {
             console.log(err);
         }
-
+        try {
+            await fetch(process.env.REACT_APP_MONGO_DB_API + `remove/${name}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json());
+        } catch (e) {
+            console.log(e);
+        }
         await updateRestaurantsData(true);
+        setPing(p => p+1)
     };
 
     const modifyRow = async (id) => {
@@ -128,30 +123,27 @@ function SQLTable() {
             } catch (error) {
                 console.error("Error on put (sql): ", error);
             }
-
             await updateRestaurantsData(false);
             setRowToModify(null);
         }
     };
 
     const restaurantInAvgList = (restaurant) => {
-        console.log('test', ping, restaurant);
-        return Object.keys(ping).includes(restaurant);
+        return Object.keys(listWithRatings).includes(restaurant);
     }
 
     useEffect(() => {
         let aux = [...restaurantsList];
         aux.map((item) => {
             if (restaurantInAvgList(item.name)) {
-                item.rating = ping[item.name];
+                item.rating = listWithRatings[item.name];
             } else {
-                console.log("no mathc", item.name);
                 item.rating = 0;
             }
             return item;
         });
         setRestaurantsList(aux);
-    }, [ping]);
+    }, [listWithRatings]);
 
 
     const sendData = async (e) => {
@@ -192,7 +184,6 @@ function SQLTable() {
     }
 
     useEffect(() => {
-        // Modularizar
         const fetchData = async () => {
             await updateRestaurantsData(false);
         };
@@ -447,7 +438,7 @@ function SQLTable() {
                                         )}
                                         <button
                                             className="mx-1 inline-block rounded bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700"
-                                            onClick={() => deleteRow(restaurant.id)}>
+                                            onClick={() => deleteRow(restaurant.id, restaurant.name)}>
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={20}
                                                  height={20} color={"#ffffff"} fill={"none"}>
                                                 <path

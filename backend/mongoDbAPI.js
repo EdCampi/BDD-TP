@@ -113,6 +113,20 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+router.delete('/remove/:restaurant', async (req, res) => {
+    const {restaurant} = req.params;
+    if (!restaurant) {
+        return res.status(400).json({message: 'Please provide a restaurant name'});
+    }
+
+    try {
+        await Review.deleteMany({restaurant});
+        return res.json({message: 'Reviews deleted successfully'});
+    } catch (err) {
+        return res.json({message: 'Error deleting reviews', error: err});
+    }
+});
+
 router.put('/:id', async (req, res) => {
     const {id} = req.params;
     const idValidationError = validateId(id);
@@ -132,7 +146,7 @@ router.put('/:id', async (req, res) => {
         await Review.findByIdAndUpdate(id, {
             restaurant, rating, title, review
         });
-        setRatings();
+        await setRatings();
         return res.json({message: 'Review updated successfully'});
     } catch (err) {
         return res.json({message: 'Error updating review', error: err});
