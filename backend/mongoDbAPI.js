@@ -19,6 +19,17 @@ const reviewSchema = new mongoose.Schema({
 });
 const Review = mongoose.model('Review', reviewSchema);
 
+async function deleteAllDocuments() {
+    try {
+        await Review.deleteMany({});
+        console.log('DB resetted successfully');
+    } catch (e) {
+        console.log('Error resetting DB');
+    }
+}
+
+deleteAllDocuments();
+
 const setRatings = async () => {
     const pipeline = [{
         $group: {

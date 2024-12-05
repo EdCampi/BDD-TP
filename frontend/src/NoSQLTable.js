@@ -157,7 +157,7 @@ function NoSQLTable() {
                     {Array.isArray(restaurants) && restaurants.length > 0 ? (restaurants.map(restaurant => (
                         <option key={"option" - restaurant.id}
                                 value={restaurant.name}>{restaurant.name}</option>))) : (
-                        <option>No hay restaurantes disponibles</option>)}
+                        <option value="" disabled selected>No hay restaurantes disponibles</option>)}
                 </select>
                 <br></br>
 

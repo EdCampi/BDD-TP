@@ -125,3 +125,5 @@ routerSQL.get('/restaurants', (req, res) => {
         }
     );
 });
+
+module.exports = routerSQL;

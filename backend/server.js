@@ -16,7 +16,7 @@ app.use(cors({
 
 
 app.use(express.json());
-const {routerSQL, _} = require('./sqlAPI.js');
+const routerSQL = require('./sqlAPI.js');
 app.use('/sqlAPI', routerSQL);
 const mongoDbAPIRouter = require('./mongoDbAPI');
 app.use('/mongoDbAPI', mongoDbAPIRouter);

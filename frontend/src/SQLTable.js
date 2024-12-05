@@ -38,6 +38,41 @@ function SQLTable() {
         }
     };
 
+    const updateRestaurants = async (jsonData, updateDropdownList) => {
+        const updatedData = jsonData.data.map(item => ({...item, rating: 0}));
+        let aux = [...updatedData];
+        aux.map((item) => {
+            if (restaurantInAvgList(item.name)) {
+                item.rating = ping[item.name];
+            } else {
+                console.log("no mathc", item.name);
+                item.rating = 0;
+            }
+            return item;
+        });
+        setRestaurantsList(aux);
+        if (updateDropdownList) {
+            const uniqueRestaurants = [...new Map(jsonData.data.map(item => [item['name'], item])).values()];
+            setRestaurants(uniqueRestaurants);
+        }
+    }
+
+    const updateRestaurantsData = async (restaurantsLenChanged) => {
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json().then(data => {
+                updateRestaurants(data, restaurantsLenChanged);
+            }));
+        } catch (e) {
+            console.log(e);
+        }
+
+    }
+
     const deleteRow = async (id) => {
         try {
             await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
@@ -50,32 +85,7 @@ function SQLTable() {
             console.log(err);
         }
 
-        try {
-            await fetch(process.env.REACT_APP_MYSQL_API, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }).then(res => res.json().then(data => {
-                const updatedData = data.data.map(item => ({...item, rating: 0}));
-                let aux = [...updatedData];
-                aux.map((item) => {
-                    if (restaurantInAvgList(item.name)) {
-                        item.rating = ping[item.name];
-                    } else {
-                        console.log("no mathc", item.name);
-                        item.rating = 0;
-                    }
-                    return item;
-                });
-                setRestaurantsList(aux);
-                const uniqueRestaurants = [...new Map(data.data.map(item => [item['name'], item])).values()];
-                setRestaurants(uniqueRestaurants);
-            }))
-        } catch (e) {
-            console.log(e);
-        }
-
+        await updateRestaurantsData(true);
     };
 
     const modifyRow = async (id) => {
@@ -119,31 +129,8 @@ function SQLTable() {
                 console.error("Error on put (sql): ", error);
             }
 
-            try {
-                console.log('before',ping);
-                await fetch(process.env.REACT_APP_MYSQL_API, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }).then(res => res.json().then(data => {
-                    setRowToModify(null);
-                    const updatedData = data.data.map(item => ({...item, rating: 0}));
-                    let aux = [...updatedData];
-                    aux.map((item) => {
-                        if (restaurantInAvgList(item.name)) {
-                            item.rating = ping[item.name];
-                        } else {
-                            console.log("no mathc", item.name);
-                            item.rating = 0;
-                        }
-                        return item;
-                    });
-                    setRestaurantsList(aux);
-                }))
-            } catch (error) {
-                console.error("Error on get after put (sql): ", error);
-            }
+            await updateRestaurantsData(false);
+            setRowToModify(null);
         }
     };
 
@@ -153,7 +140,6 @@ function SQLTable() {
     }
 
     useEffect(() => {
-        console.log('cliente', ping);
         let aux = [...restaurantsList];
         aux.map((item) => {
             if (restaurantInAvgList(item.name)) {
@@ -165,7 +151,6 @@ function SQLTable() {
             return item;
         });
         setRestaurantsList(aux);
-        console.log('cliewnte after loop', aux);
     }, [ping]);
 
 
@@ -203,60 +188,13 @@ function SQLTable() {
         } catch (e) {
             console.log(e);
         }
-
-        try {
-            await fetch(process.env.REACT_APP_MYSQL_API, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }).then(res => res.json().then(data => {
-                const updatedData = data.data.map(item => ({...item, rating: 0}));
-                let aux = [...updatedData];
-                aux.map((item) => {
-                    if (restaurantInAvgList(item.name)) {
-                        item.rating = ping[item.name];
-                    } else {
-                        console.log("no mathc", item.name);
-                        item.rating = 0;
-                    }
-                    return item;
-                });
-                setRestaurantsList(aux);
-                const uniqueRestaurants = [...new Map(updatedData.map(item => [item['name'], item])).values()];
-                setRestaurants(uniqueRestaurants);
-            }))
-        } catch (e) {
-            console.log(e);
-        }
+        await updateRestaurantsData(true);
     }
 
     useEffect(() => {
         // Modularizar
         const fetchData = async () => {
-            try {
-                await fetch('http://localhost:3001/sqlAPI/', {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }).then(res => res.json().then(data => {
-                    const updatedData = data.data.map(item => ({...item, rating: 0}));
-                    let aux = [...updatedData];
-                    aux.map((item) => {
-                        if (restaurantInAvgList(item.name)) {
-                            item.rating = ping[item.name];
-                        } else {
-                            console.log("no mathc", item.name);
-                            item.rating = 0;
-                        }
-                        return item;
-                    });
-                    setRestaurantsList(updatedData);
-                }));
-            } catch (e) {
-                console.log(e);
-            }
+            await updateRestaurantsData(false);
         };
         fetchData();
     }, [rowToModify]);
