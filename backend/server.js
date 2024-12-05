@@ -1,8 +1,10 @@
 require('dotenv').config();
 
+const setupDatabase = require('./setupDatabase');
+setupDatabase();
+
 const cors = require('cors');
 const express = require('express');
-const setupDatabase = require('./setupDatabase');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -11,7 +13,7 @@ app.use(cors({
 }));
 
 // Creo la database SQL
-setupDatabase();
+
 
 app.use(express.json());
 const {routerSQL, _} = require('./sqlAPI.js');

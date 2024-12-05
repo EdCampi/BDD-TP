@@ -20,7 +20,6 @@ const reviewSchema = new mongoose.Schema({
 });
 const Review = mongoose.model('Review', reviewSchema);
 
-
 const setRatings = async () => {
     const pipeline = [{
         $group: {
@@ -39,7 +38,7 @@ const setRatings = async () => {
     });
 
     let query = `UPDATE restaurants SET rating = `;
-    if (Object.keys(avgRatings).length = 0) {
+    if (Object.keys(avgRatings).length === 0) {
         query += `0`;
     } else {
         query += `CASE name `;
@@ -55,8 +54,17 @@ const setRatings = async () => {
     })
 };
 
+const validations = require('./mongoDbValidation.js');
+
 router.post('/', async (req, res) => {
     const {restaurant, rating, title, review} = req.body;
+    let validationError = validations.validateRestaurant(restaurant) ||
+        validations.validateRating(rating) ||
+        validations.validateTitle(title) ||
+        validations.validateReview(review);
+    if (validationError) {
+        return res.status(400).json({message: validationError});
+    }
     try {
         const newReview = new Review({
             restaurant, rating, title, review
@@ -79,8 +87,22 @@ router.get('/', async (req, res) => {
     }
 });
 
+function validateId(id) {
+    if (!id) {
+        return 'Please provide an id'
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return 'Invalid id'
+    }
+}
+
 router.delete('/:id', async (req, res) => {
     const {id} = req.params;
+    let idValidationError = validateId(id);
+    if (idValidationError) {
+        return res.status(400).json({message: idValidationError});
+    }
+
     try {
         await Review.findByIdAndDelete(id);
         setRatings();
@@ -92,7 +114,19 @@ router.delete('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
     const {id} = req.params;
+    const idValidationError = validateId(id);
+    if (idValidationError) {
+        return res.status(400).json({message: idValidationError});
+    }
+
     const {restaurant, rating, title, review} = req.body;
+    let validationError = validations.validateRestaurant(restaurant) ||
+        validations.validateRating(rating) ||
+        validations.validateTitle(title) ||
+        validations.validateReview(review);
+    if (validationError) {
+        return res.status(400).json({message: validationError});
+    }
     try {
         await Review.findByIdAndUpdate(id, {
             restaurant, rating, title, review

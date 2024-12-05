@@ -1,32 +1,42 @@
 import React, {useContext, useEffect, useState} from "react";
 import {SharedStateContext} from "./SharedStateContext";
 
+const sw = require('sweetalert2');
+
 function NoSQLTable() {
 
     const {restaurants, setRestaurants} = useContext(SharedStateContext);
-    const {_, setRestaurantsList} = useContext(SharedStateContext);
+    const {setRestaurantsList} = useContext(SharedStateContext);
     const [reviews, setReviews] = useState([]);
     const [reviewToModify, setReviewToModify] = useState(null);
 
 
     const updateReviews = async () => {
-        const res = await fetch(process.env.REACT_APP_MONGO_DB_API, {
-            method: 'GET', headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        const resJSON = await res.json();
-        setReviews(resJSON.data);
+        try {
+            await fetch(process.env.REACT_APP_MONGO_DB_API, {
+                method: 'GET', headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json()).then(data => {
+                setReviews(data.data);
+            });
+        } catch (e) {
+            console.log(e);
+        }
     };
 
     const updateRestaurants = async () => {
-        const res = await fetch(process.env.REACT_APP_MYSQL_API + '/restaurants', {
-            method: 'GET', headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        const resJSON = await res.json();
-        setRestaurants(resJSON.data);
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API + '/restaurants', {
+                method: 'GET', headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json()).then(data => {
+                setRestaurants(data.data);
+            });
+        } catch (e) {
+            console.log(e);
+        }
     };
 
     useEffect(() => {
@@ -38,61 +48,100 @@ function NoSQLTable() {
         event.preventDefault();
 
         const restaurant = document.getElementById('restaurante').value;
-        const rating = document.getElementById('calificacion').value;
+        const rating = parseInt(document.getElementById('calificacion').value);
         const title = document.getElementById('titulo-review').value;
         const review = document.getElementById('descripcion').value;
 
         const data = {
             restaurant: restaurant, rating: rating, title: title, review: review
         };
-        const res = await fetch(process.env.REACT_APP_MONGO_DB_API, {
-            method: 'POST', headers: {
-                'Content-Type': 'application/json',
-            }, body: JSON.stringify(data),
-        });
-        const resJSON = await res.json();
-        updateReviews();
-        updateRatings();
+        try {
+            const res = await fetch(process.env.REACT_APP_MONGO_DB_API, {
+                method: 'POST', headers: {
+                    'Content-Type': 'application/json',
+                }, body: JSON.stringify(data),
+            });
+            if (res.status === 400) {
+                return res.json().then(data => {
+                    if (data.message) {
+                        sw.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message
+                        });
+                    }
+                });
+            }
+            const resData = await res.json();
+            await updateReviews();
+            await updateRatings();
+
+        } catch (e) {
+            console.log(e);
+        }
     }
 
 
     const deleteReview = async (e, id) => {
         e.preventDefault();
-        const res = await fetch(process.env.REACT_APP_MONGO_DB_API + `/${id}`, {
-            method: "DELETE", headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        updateReviews();
-        updateRatings();
+        try {
+            await fetch(process.env.REACT_APP_MONGO_DB_API + `/${id}`, {
+                method: "DELETE", headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            await updateReviews();
+            await updateRatings();
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     const updateRatings = async () => {
-        const res = await fetch(process.env.REACT_APP_MYSQL_API, {
-            method: 'GET', headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        const data = await res.json();
-        setRestaurantsList(data.data);
+        try {
+            const res = await fetch(process.env.REACT_APP_MYSQL_API, {
+                method: 'GET', headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const data = await res.json();
+            setRestaurantsList(data.data);
+        } catch (e) {
+            console.log(e);
+        }
     };
 
     const modifyReview = async () => {
         const restaurant = document.getElementById("r-restaurant-" + reviewToModify).value;
-        const rating = document.getElementById("r-rating-" + reviewToModify).value;
+        const rating = parseInt(document.getElementById("r-rating-" + reviewToModify).value);
         const title = document.getElementById("r-title-" + reviewToModify).value;
         const review = document.getElementById("r-review-" + reviewToModify).value;
         const data = {
             restaurant: restaurant, rating: rating, title: title, review: review
         }
-        const res = await fetch(process.env.REACT_APP_MONGO_DB_API + `/${reviewToModify}`, {
-            method: 'PUT', headers: {
-                'Content-Type': 'application/json',
-            }, body: JSON.stringify(data),
-        });
-        const resJSON = await res.json();
-        updateReviews();
-        updateRatings();
+        try {
+            await fetch(process.env.REACT_APP_MONGO_DB_API + `/${reviewToModify}`, {
+                method: 'PUT', headers: {
+                    'Content-Type': 'application/json',
+                }, body: JSON.stringify(data),
+            }).then(res => {
+                if (res.status === 400) {
+                    return res.json().then(data => {
+                        if (data.message) {
+                            sw.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message
+                            });
+                        }
+                    });
+                }
+                updateReviews();
+                updateRatings();
+            })
+        } catch (e) {
+            console.log(e);
+        }
     }
 
     const cleanReview = (e) => {
@@ -186,7 +235,8 @@ function NoSQLTable() {
                                         <div>
                                             <div>
 
-                                                <select className="rounded-lg p-1" id={"r-rating-" + review._id} name="calificacion"
+                                                <select className="rounded-lg p-1" id={"r-rating-" + review._id}
+                                                        name="calificacion"
                                                         defaultValue={review.rating} required>
                                                     {[...Array(5)].map((_, i) => (
                                                         <option key={i + 1} value={i + 1}>{i + 1}</option>
@@ -209,7 +259,8 @@ function NoSQLTable() {
                                     )}
 
                                     {(reviewToModify == review._id) ? (
-                                        <select id={"r-restaurant-" + review._id} className="rounded-lg p-1 mt-0.5 text-gray-400"
+                                        <select id={"r-restaurant-" + review._id}
+                                                className="rounded-lg p-1 mt-0.5 text-gray-400"
                                                 defaultValue={review.restaurant}>
                                             {restaurants.map(restaurant => (
                                                 <option key={restaurant.id}
@@ -219,9 +270,9 @@ function NoSQLTable() {
 
 
                                     {(reviewToModify == review._id) ? (
-                                        <input  className="rounded-lg p-1 mt-0.5 text-lg font-medium text-gray-900"
-                                            id={"r-title-" + review._id}
-                                            defaultValue={review.title}/>
+                                        <input className="rounded-lg p-1 mt-0.5 text-lg font-medium text-gray-900"
+                                               id={"r-title-" + review._id}
+                                               defaultValue={review.title}/>
                                     ) : (
                                         <p className="mt-0.5 text-lg font-medium text-gray-900">{review.title}</p>
                                     )}
@@ -230,7 +281,8 @@ function NoSQLTable() {
                             </div>
 
                             {(reviewToModify == review._id) ? (
-                                <textarea className="rounded-lg mt-4 text-gray-700 p-3" id={"r-review-" + review._id} defaultValue={review.review}/>) : (
+                                <textarea className="rounded-lg mt-4 text-gray-700 p-3" id={"r-review-" + review._id}
+                                          defaultValue={review.review}/>) : (
                                 <p className="mt-4 text-gray-700"
                                    key={"review-" + review._id}>{review.review}</p>)}
                             <br></br>

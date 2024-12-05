@@ -1,57 +1,49 @@
 import React, {useContext, useEffect, useState} from "react";
 import {SharedStateContext} from './SharedStateContext';
+const sw = require('sweetalert2');
 
 function SQLTable() {
-
-    //Lista de dicts filtrada x unicos en name.
-    const {_, setRestaurants} = useContext(SharedStateContext);
-
     const [restaurant, setRestaurant] = useState('');
-    const [rating, setRating] = useState('0');
+    const [rating] = useState('0');
     const [category, setCategory] = useState('');
     const [price, setPrice] = useState('$');
     const [address, setAddress] = useState('');
     const [phone, setPhone] = useState('');
     const [editor, setEditor] = useState(false);
-
     const [rowToModify, setRowToModify] = useState(null);
 
     // Lista de dicts para rellenar tabla.
     const {restaurantsList, setRestaurantsList} = useContext(SharedStateContext);
+    //Lista de dicts filtrada x unicos en name.
+    const { setRestaurants} = useContext(SharedStateContext);
 
-    useEffect(() => {
-        // Modularizar
-        const fetchData = async () => {
-            const tableData = await fetch('http://localhost:3001/sqlAPI/', {
+    const deleteRow = async (id) => {
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json())
+        } catch (err) {
+            console.log(err);
+        }
+
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-            });
-            const tableDataJSON = await tableData.json();
-            setRestaurantsList(tableDataJSON.data);
-        };
-        fetchData();
-    }, [rowToModify]);
+            }).then(res => res.json().then(data => {
+                setRestaurantsList(data.data);
+                const uniqueRestaurants = [...new Map(data.data.map(item => [item['name'], item])).values()];
+                setRestaurants(uniqueRestaurants);
+            }))
+        } catch (e) {
+            console.log(e);
+        }
 
-    const deleteRow = async (id) => {
-        const res = await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-
-        const tableData = await fetch(process.env.REACT_APP_MYSQL_API, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        const tableDataJSON = await tableData.json();
-        setRestaurantsList(tableDataJSON.data);
-        const uniqueRestaurants = [...new Map(tableDataJSON.data.map(item => [item['name'], item])).values()];
-        setRestaurants(uniqueRestaurants);
     };
 
     const modifyRow = async (id) => {
@@ -68,25 +60,47 @@ function SQLTable() {
                 category: document.getElementById(`categoria-${id}`).value,
                 price: document.getElementById(`precio-${id}`).value,
                 address: document.getElementById(`direccion-${id}`).value,
+                city: "jcp",
+                province: "bs as",
                 phone: document.getElementById(`telefono-${id}`).value
             }
-            const _ = await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            const tableData = await fetch(process.env.REACT_APP_MYSQL_API, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const tableDataJSON = await tableData.json();
             setRowToModify(null);
-            setRestaurantsList(tableDataJSON.data);
+            try {
+                await fetch(process.env.REACT_APP_MYSQL_API + `/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                }).then(res => {
+                    if (res.status === 400) {
+                        return res.json().then(data => {
+                            sw.fire({
+                                title: 'Error',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonText: 'Ok'
+                            });
+                        });
+                    }
+                })
+            } catch (error) {
+                console.error("Error on put (sql): ", error);
+            }
+
+            try {
+                await fetch(process.env.REACT_APP_MYSQL_API, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }).then(res => res.json().then(data => {
+                    setRowToModify(null);
+                    setRestaurantsList(data.data);
+                }))
+            } catch (error) {
+                console.error("Error on get after put (sql): ", error);
+            }
         }
     };
 
@@ -99,28 +113,67 @@ function SQLTable() {
             category: category,
             price: price,
             address: address,
+            city: 'jcp',
+            province: 'bs as',
             phone: phone
         }
-        const _ = await fetch(process.env.REACT_APP_MYSQL_API, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-        });
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            }).then(res => {
+                if (res.status === 400) {
+                    return res.json().then(data => {
+                        sw.fire({
+                            title: 'Error',
+                            text: data.message,
+                            icon: 'error',
+                            confirmButtonText: 'Ok'
+                        });
+                    });
+                }
+            })
+        } catch (e) {
+            console.log(e);
+        }
 
-        const tableData = await fetch(process.env.REACT_APP_MYSQL_API, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        const tableDataJSON = await tableData.json();
-        setRestaurantsList(tableDataJSON.data);
-        //dame codigo para filtrar la lista de dicts restaurantsList por unicos en name
-        const uniqueRestaurants = [...new Map(tableDataJSON.data.map(item => [item['name'], item])).values()];
-        setRestaurants(uniqueRestaurants);
+        try {
+            await fetch(process.env.REACT_APP_MYSQL_API, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(res => res.json().then(data => {
+                setRestaurantsList(data.data);
+                const uniqueRestaurants = [...new Map(data.data.map(item => [item['name'], item])).values()];
+                setRestaurants(uniqueRestaurants);
+            }))
+        } catch (e) {
+            console.log(e);
+        }
     }
+
+    useEffect(() => {
+        // Modularizar
+        const fetchData = async () => {
+            try {
+                const tableData = await fetch('http://localhost:3001/sqlAPI/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }).then(res => res.json().then(data => {
+                    setRestaurantsList(data.data);
+                }));
+            } catch (e) {
+                console.log(e);
+            }
+        };
+        fetchData();
+    }, [rowToModify]);
 
     return (
         <div id="sql-section" className="table">
@@ -131,7 +184,7 @@ function SQLTable() {
                 }}>
                     <p className="form-title">Agregá un restaurante</p>
                     <label className="block text-sm font-medium text-gray-700" htmlFor="nombre">Nombre</label>
-                    <input type="text" placeholder="Ingresar nombre" type="text" id="nombre" name="nombre"
+                    <input type="text" placeholder="Ingresar nombre" id="nombre" name="nombre"
                            value={restaurant}
                            className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
                            onChange={(e) => setRestaurant(e.target.value)} required/>
@@ -139,12 +192,11 @@ function SQLTable() {
 
                     <label className="block text-sm font-medium text-gray-700" htmlFor="categoria">Tipo de
                         comida</label>
-                    <input placeholder="Ingresar categoría" tpye="text" id="categoria" name="categoria" value={category}
+                    <input placeholder="Ingresar categoría" type="text" id="categoria" name="categoria" value={category}
                            className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
                            onChange={(e) => setCategory(e.target.value)} required/>
                     <br></br>
-                    <label className="block text-sm font-medium text-gray-700" htmlFor="precios"
-                           className="block text-sm font-medium text-gray-900">Rango de
+                    <label className="block text-sm font-medium text-gray-700" htmlFor="precios">Rango de
                         precios</label>
                     <select id="precios" name="precios" value={price} onChange={(e) => setPrice(e.target.value)}
                             className="mt-1.5 w-full rounded-lg border-gray-300 text-gray-700 sm:text-sm"
@@ -157,7 +209,7 @@ function SQLTable() {
 
                     <label className="block text-sm font-medium text-gray-700"
                            htmlFor="direccion">Dirección</label>
-                    <input placeholder="Ingresar dirección" type="text" id="apellido" name="direccion" value={address}
+                    <input placeholder="Ingresar dirección" type="text" id="direccion" name="direccion" value={address}
                            className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
                            onChange={(e) => setAddress(e.target.value)} required/>
                     <br></br>
@@ -355,6 +407,6 @@ function SQLTable() {
             </div>
         </div>
     );
-};
+}
 
 export default SQLTable;
