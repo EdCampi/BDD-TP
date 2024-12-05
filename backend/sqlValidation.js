@@ -14,8 +14,9 @@ function verifyPrice(price) {
 }
 
 function verifyAddress(address) {
-    let addressRegex = /^\d{1,5} [a-zA-Z0-9\s]+$/;
-    return addressRegex.test(address);
+    let addressRegNumName = /^\d{1,5} [a-zA-Z0-9\s]+$/;
+    let addressRegNameNum = /^[a-zA-Z0-9\s]+ \d{1,5}$/;
+    return addressRegNameNum.test(address) || addressRegNumName.test(address);
 }
 
 /*
