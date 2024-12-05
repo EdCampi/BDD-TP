@@ -6,20 +6,32 @@ const sw = require('sweetalert2');
 function NoSQLTable() {
 
     const {restaurants, setRestaurants} = useContext(SharedStateContext);
-    const {setRestaurantsList} = useContext(SharedStateContext);
+    const {ping, setPing} = useContext(SharedStateContext);
     const [reviews, setReviews] = useState([]);
     const [reviewToModify, setReviewToModify] = useState(null);
 
 
     const updateReviews = async () => {
         try {
-            await fetch(process.env.REACT_APP_MONGO_DB_API, {
+            const res = await fetch(process.env.REACT_APP_MONGO_DB_API, {
                 method: 'GET', headers: {
                     'Content-Type': 'application/json',
                 },
-            }).then(res => res.json()).then(data => {
-                setReviews(data.data);
             });
+            const resJSON = await res.json();
+            setReviews(resJSON.data);
+            try {
+                const res = await fetch(process.env.REACT_APP_MONGO_DB_API + '/ratings', {
+                    method: 'GET', headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                const avgJSON = await res.json();
+                console.log('retings horse mouth', avgJSON.data);
+                setPing(avgJSON.data);
+            } catch (e) {
+                console.log(e);
+            }
         } catch (e) {
             console.log(e);
         }
@@ -72,10 +84,7 @@ function NoSQLTable() {
                     }
                 });
             }
-            const resData = await res.json();
             await updateReviews();
-            await updateRatings();
-
         } catch (e) {
             console.log(e);
         }
@@ -91,25 +100,10 @@ function NoSQLTable() {
                 }
             });
             await updateReviews();
-            await updateRatings();
         } catch (e) {
             console.log(e);
         }
     }
-
-    const updateRatings = async () => {
-        try {
-            const res = await fetch(process.env.REACT_APP_MYSQL_API, {
-                method: 'GET', headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const data = await res.json();
-            setRestaurantsList(data.data);
-        } catch (e) {
-            console.log(e);
-        }
-    };
 
     const modifyReview = async () => {
         const restaurant = document.getElementById("r-restaurant-" + reviewToModify).value;
@@ -137,7 +131,6 @@ function NoSQLTable() {
                     });
                 }
                 updateReviews();
-                updateRatings();
             })
         } catch (e) {
             console.log(e);

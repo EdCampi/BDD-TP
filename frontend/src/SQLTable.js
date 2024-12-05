@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from "react";
 import {SharedStateContext} from './SharedStateContext';
+
 const sw = require('sweetalert2');
 
 function SQLTable() {
@@ -8,6 +9,8 @@ function SQLTable() {
     const [category, setCategory] = useState('');
     const [price, setPrice] = useState('$');
     const [address, setAddress] = useState('');
+    const [city, setCity] = useState('');
+    const [province, setProvince] = useState('');
     const [phone, setPhone] = useState('');
     const [editor, setEditor] = useState(false);
     const [rowToModify, setRowToModify] = useState(null);
@@ -15,7 +18,25 @@ function SQLTable() {
     // Lista de dicts para rellenar tabla.
     const {restaurantsList, setRestaurantsList} = useContext(SharedStateContext);
     //Lista de dicts filtrada x unicos en name.
-    const { setRestaurants} = useContext(SharedStateContext);
+    const {setRestaurants} = useContext(SharedStateContext);
+    const [avgRatings, setAvgRatings] = useState({});
+    const {ping, setPing} = useContext(SharedStateContext);
+
+
+    const updateRatings = async () => {
+        try {
+            const res = await fetch(process.env.REACT_APP_MONGO_DB_API + '/ratings', {
+                method: 'GET', headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            const resJSON = await res.json();
+            setAvgRatings(resJSON.data);
+            console.log('udrt', avgRatings);
+        } catch (e) {
+            console.log(e);
+        }
+    };
 
     const deleteRow = async (id) => {
         try {
@@ -36,7 +57,18 @@ function SQLTable() {
                     'Content-Type': 'application/json',
                 },
             }).then(res => res.json().then(data => {
-                setRestaurantsList(data.data);
+                const updatedData = data.data.map(item => ({...item, rating: 0}));
+                let aux = [...updatedData];
+                aux.map((item) => {
+                    if (restaurantInAvgList(item.name)) {
+                        item.rating = ping[item.name];
+                    } else {
+                        console.log("no mathc", item.name);
+                        item.rating = 0;
+                    }
+                    return item;
+                });
+                setRestaurantsList(aux);
                 const uniqueRestaurants = [...new Map(data.data.map(item => [item['name'], item])).values()];
                 setRestaurants(uniqueRestaurants);
             }))
@@ -56,12 +88,11 @@ function SQLTable() {
         if (editor) {
             const data = {
                 restaurant: document.getElementById(`nombre-${id}`).value,
-                rating: document.getElementById(`calificacion-${id}`).value,
                 category: document.getElementById(`categoria-${id}`).value,
                 price: document.getElementById(`precio-${id}`).value,
                 address: document.getElementById(`direccion-${id}`).value,
-                city: "jcp",
-                province: "bs as",
+                city: document.getElementById(`ciudad-${id}`).value,
+                province: document.getElementById(`provincia-${id}`).value,
                 phone: document.getElementById(`telefono-${id}`).value
             }
             setRowToModify(null);
@@ -89,6 +120,7 @@ function SQLTable() {
             }
 
             try {
+                console.log('before',ping);
                 await fetch(process.env.REACT_APP_MYSQL_API, {
                     method: 'GET',
                     headers: {
@@ -96,13 +128,45 @@ function SQLTable() {
                     },
                 }).then(res => res.json().then(data => {
                     setRowToModify(null);
-                    setRestaurantsList(data.data);
+                    const updatedData = data.data.map(item => ({...item, rating: 0}));
+                    let aux = [...updatedData];
+                    aux.map((item) => {
+                        if (restaurantInAvgList(item.name)) {
+                            item.rating = ping[item.name];
+                        } else {
+                            console.log("no mathc", item.name);
+                            item.rating = 0;
+                        }
+                        return item;
+                    });
+                    setRestaurantsList(aux);
                 }))
             } catch (error) {
                 console.error("Error on get after put (sql): ", error);
             }
         }
     };
+
+    const restaurantInAvgList = (restaurant) => {
+        console.log('test', ping, restaurant);
+        return Object.keys(ping).includes(restaurant);
+    }
+
+    useEffect(() => {
+        console.log('cliente', ping);
+        let aux = [...restaurantsList];
+        aux.map((item) => {
+            if (restaurantInAvgList(item.name)) {
+                item.rating = ping[item.name];
+            } else {
+                console.log("no mathc", item.name);
+                item.rating = 0;
+            }
+            return item;
+        });
+        setRestaurantsList(aux);
+        console.log('cliewnte after loop', aux);
+    }, [ping]);
 
 
     const sendData = async (e) => {
@@ -113,8 +177,8 @@ function SQLTable() {
             category: category,
             price: price,
             address: address,
-            city: 'jcp',
-            province: 'bs as',
+            city: city,
+            province: province,
             phone: phone
         }
         try {
@@ -147,8 +211,19 @@ function SQLTable() {
                     'Content-Type': 'application/json',
                 },
             }).then(res => res.json().then(data => {
-                setRestaurantsList(data.data);
-                const uniqueRestaurants = [...new Map(data.data.map(item => [item['name'], item])).values()];
+                const updatedData = data.data.map(item => ({...item, rating: 0}));
+                let aux = [...updatedData];
+                aux.map((item) => {
+                    if (restaurantInAvgList(item.name)) {
+                        item.rating = ping[item.name];
+                    } else {
+                        console.log("no mathc", item.name);
+                        item.rating = 0;
+                    }
+                    return item;
+                });
+                setRestaurantsList(aux);
+                const uniqueRestaurants = [...new Map(updatedData.map(item => [item['name'], item])).values()];
                 setRestaurants(uniqueRestaurants);
             }))
         } catch (e) {
@@ -160,13 +235,24 @@ function SQLTable() {
         // Modularizar
         const fetchData = async () => {
             try {
-                const tableData = await fetch('http://localhost:3001/sqlAPI/', {
+                await fetch('http://localhost:3001/sqlAPI/', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                 }).then(res => res.json().then(data => {
-                    setRestaurantsList(data.data);
+                    const updatedData = data.data.map(item => ({...item, rating: 0}));
+                    let aux = [...updatedData];
+                    aux.map((item) => {
+                        if (restaurantInAvgList(item.name)) {
+                            item.rating = ping[item.name];
+                        } else {
+                            console.log("no mathc", item.name);
+                            item.rating = 0;
+                        }
+                        return item;
+                    });
+                    setRestaurantsList(updatedData);
                 }));
             } catch (e) {
                 console.log(e);
@@ -215,6 +301,20 @@ function SQLTable() {
                     <br></br>
 
                     <label className="block text-sm font-medium text-gray-700"
+                           htmlFor="ciudad">Ciudad</label>
+                    <input placeholder="Ingresar dirección" type="text" id="ciudad" name="ciudad" value={city}
+                           className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
+                           onChange={(e) => setCity(e.target.value)} required/>
+                    <br></br>
+
+                    <label className="block text-sm font-medium text-gray-700"
+                           htmlFor="provincia">Provincia</label>
+                    <input placeholder="Ingresar dirección" type="text" id="provincia" name="provincia" value={province}
+                           className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
+                           onChange={(e) => setProvince(e.target.value)} required/>
+                    <br></br>
+
+                    <label className="block text-sm font-medium text-gray-700"
                            htmlFor="telefono">Teléfono</label>
                     <input type="tel" id="telefono" name="telefono" pattern="[0-9]{10,15}" placeholder="Solo números"
                            className="mt-1 w-full rounded-md border-gray-200 bg-white text-sm text-gray-700 shadow-sm"
@@ -242,6 +342,8 @@ function SQLTable() {
                             <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">Comida</th>
                             <th className="thprice whitespace-nowrap px-4 py-2 font-medium text-gray-900">Precios</th>
                             <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">Dirección</th>
+                            <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">Ciudad</th>
+                            <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">Provincia</th>
                             <th className="whitespace-nowrap px-4 py-2 font-medium text-gray-900">Teléfono</th>
                             <th className="thbtns whitespace-nowrap px-4 py-2 font-medium text-gray-900"></th>
                             <th className="px-4 py-2"></th>
@@ -318,6 +420,40 @@ function SQLTable() {
                                                 }}/>
                                         ) : (
                                             restaurant.address
+                                        )}
+                                    </td>
+                                    <td className="taddress whitespace-nowrap px-4 py-2 text-gray-700">
+                                        {rowToModify === restaurant.id ? (
+                                            <input
+                                                className="update-input  rounded-md border border-gray-200 shadow-sm sm:text-sm"
+                                                id={"ciudad-" + restaurant.id} type="text"
+                                                value={restaurant.city}
+                                                onChange={(e) => {
+                                                    const updatedRestaurants = restaurantsList.map(r => r.id === restaurant.id ? {
+                                                        ...r,
+                                                        city: e.target.value
+                                                    } : r);
+                                                    setRestaurantsList(updatedRestaurants);
+                                                }}/>
+                                        ) : (
+                                            restaurant.city
+                                        )}
+                                    </td>
+                                    <td className="taddress whitespace-nowrap px-4 py-2 text-gray-700">
+                                        {rowToModify === restaurant.id ? (
+                                            <input
+                                                className="update-input  rounded-md border border-gray-200 shadow-sm sm:text-sm"
+                                                id={"provincia-" + restaurant.id} type="text"
+                                                value={restaurant.province}
+                                                onChange={(e) => {
+                                                    const updatedRestaurants = restaurantsList.map(r => r.id === restaurant.id ? {
+                                                        ...r,
+                                                        province: e.target.value
+                                                    } : r);
+                                                    setRestaurantsList(updatedRestaurants);
+                                                }}/>
+                                        ) : (
+                                            restaurant.province
                                         )}
                                     </td>
                                     <td className="tphone whitespace-nowrap px-4 py-2 text-gray-700">{rowToModify === restaurant.id ? (

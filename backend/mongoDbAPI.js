@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const {_, connectionSQL} = require('./sqlAPI.js');
 
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true, useUnifiedTopology: true
@@ -37,22 +36,13 @@ const setRatings = async () => {
         avgRatings[item._id] = item.averageRating;
     });
 
-    let query = `UPDATE restaurants SET rating = `;
-    if (Object.keys(avgRatings).length === 0) {
-        query += `0`;
-    } else {
-        query += `CASE name `;
-        for (const [key, value] of Object.entries(avgRatings)) {
-            query += `WHEN '${key}' THEN ${value} `;
-        }
-        query += `ELSE 0 END`;
-    }
-    connectionSQL.query(query, (err, result) => {
-        if (err) {
-            throw err;
-        }
-    })
+    return avgRatings;
 };
+
+router.get('/ratings', async (req, res) => {
+    const ratings = await setRatings();
+    return res.status(201).json({message: 'Ratings fetched successfully', data: ratings});
+});
 
 const validations = require('./mongoDbValidation.js');
 

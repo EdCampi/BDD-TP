@@ -89,7 +89,8 @@ td {
     white-space: nowrap;
 }
 
-th:nth-child(7), td:nth-child(7) {
+th:nth-child(9), td:nth-child(9),
+th:nth-child(4), td:nth-child(4) {
     overflow: visible;
 }
 

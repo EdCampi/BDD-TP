@@ -39,7 +39,7 @@ routerSQL.get('/', (req, res) => {
 });
 
 routerSQL.post('/', async (req, res) => {
-    const {restaurant, rating, category, price, address, city, province, phone} = req.body;
+    const {restaurant, category, price, address, city, province, phone} = req.body;
     let validationError = await validateRestaurantData({restaurant, category, price, address, city, province, phone, connectionSQL});
     if (validationError) {
         return res.status(400).json({message: validationError});
@@ -49,8 +49,8 @@ routerSQL.post('/', async (req, res) => {
             return res.status(400).json({message: 'Another restaurant has this address registered.'});
         }
         connectionSQL.query(
-            `INSERT INTO restaurants (name, rating, category, price, address, city, province, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, //(?, ? ...) prevents SQL injection
-            [restaurant, rating, category, price, address, city, province, phone],
+            `INSERT INTO restaurants (name, category, price, address, city, province, phone) VALUES (?, ?, ?, ?, ?, ?, ?)`, //(?, ? ...) prevents SQL injection
+            [restaurant, category, price, address, city, province, phone],
             (err, result) => {
                 if (err) {
                     if (err.code === 'ER_DUP_ENTRY') {
@@ -125,5 +125,3 @@ routerSQL.get('/restaurants', (req, res) => {
         }
     );
 });
-
-module.exports = {routerSQL, connectionSQL};
